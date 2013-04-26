@@ -507,3 +507,44 @@ Regular Expressions Cookbook, by Jan Goyvaerts and Steven Levithan
 http://www.regular-expressions.info
 ''')
 
+def e50():
+    example='''reg.match('q[^u]', 'mnopqrstuv')'''
+    printe('50', example)
+    exec(example)
+
+def e51():
+    example='''reg.match('q[^u]', 'iraq')'''
+    printe('51', example)
+    exec(example)
+
+def e52():
+    example='''reg.match('q(?!u)', 'iraq')'''
+    printe('52', example)
+    exec(example)
+
+def e53():
+    exampleA='''reg.match('q(?=u)', 'quite')'''
+    exampleB='''reg.match('q(?=u)', 'Iraq')'''
+    printe('53A', exampleA)
+    exec(exampleA)
+    printe('53B', exampleB)
+    exec(exampleB)
+
+def e54():
+    exampleA='''reg.match('^S(?=h)rubbery$', 'Shrubbery')'''
+    exampleB='''reg.match('^S(?=h)hrubbery$', 'Shrubbery')'''
+    printe('54A', exampleA)
+    exec(exampleA)
+    printe('54B', exampleB)
+    exec(exampleB)
+
+def e55():
+    example='''reg.match('(?<!q)u', 'This is quite useless!')'''
+    printe('55', example)
+    exec(example)
+
+def e56():
+    example='''reg.match('(?<=q)u', 'This is quite useless!')'''
+    printe('56', example)
+    exec(example)
+
