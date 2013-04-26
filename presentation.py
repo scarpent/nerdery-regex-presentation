@@ -495,3 +495,15 @@ def e45():
     printe('45.1', example)
     exec(example)
 
+def e46():
+    print('''
+---------------------------------------------
+Recommended Reading:
+
+Mastering Regular Expressions, by Jeffrey Friedl
+
+Regular Expressions Cookbook, by Jan Goyvaerts and Steven Levithan
+
+http://www.regular-expressions.info
+''')
+
