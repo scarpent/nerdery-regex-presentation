@@ -1,0 +1,819 @@
+<h1>Regex Presentation Outline</h1>
+
+<h2>Demonstration: A Totally Useful Real World Application</h2>
+
+<p>The "rename" Perl script.</p>
+
+<p>Say we've just downloaded some MP3 files from an album by TNSH:</p>
+
+<pre><code>1 You've Probably Never Heard Of It.mp3
+10 One More Song.mp3
+2 I Wish My Typewriter Had Helvetica.mp3
+3 Too Meta For You To Understand.mp3
+4 PBR On My Desert Boots.mp3
+5 Haircuts Are For Losers.mp3
+6 Organic Mouth Wash Blues.mp3
+7 Way Ironic, Don't You Think.mp3
+8 Niche Song.mp3
+9 Unnamed Song.mp3
+</code></pre>
+
+<p>There are two problems with these filenames. One, the numbers aren't zero-padded, causing the 10th song to be listed out of order, and two, we like to have the artist's name in the filename.</p>
+
+<p>For this, I'd use "rename," which seems to come fairly standard on Linux distributions, and can be easily dropped on a Mac. Let's try:</p>
+
+<pre><code>rename 's/^([0-9] )(.*)/0$1$2/' * -n
+</code></pre>
+
+<p>(We'll cover all of these squiggles in the presentation.)</p>
+
+<p><code>-n</code> let's us preview the rename. If all looks well, we can run it for real to get our filenames in order:</p>
+
+<pre><code>01 You've Probably Never Heard Of It.mp3
+02 I Wish My Typewriter Had Helvetica.mp3
+[...]
+09 Unnamed Song.mp3
+10 One More Song.mp3
+</code></pre>
+
+<p>And then we'll run another rename command to add the band name, along with some ornamentation for the track numbers:</p>
+
+<pre><code>rename 's/^(..) (.*)/TNSH -$1- $2/' *
+</code></pre>
+
+<p>Giving us:</p>
+
+<pre><code>TNSH -01- You've Probably Never Heard Of It.mp3
+TNSH -02- I Wish My Typewriter Had Helvetica.mp3
+TNSH -03- Too Meta For You To Understand.mp3
+TNSH -04- PBR On My Desert Boots.mp3
+TNSH -05- Haircuts Are For Losers.mp3
+TNSH -06- Organic Mouth Wash Blues.mp3
+TNSH -07- Way Ironic, Don't You Think.mp3
+TNSH -08- Niche Song.mp3
+TNSH -09- Unnamed Song.mp3
+TNSH -10- One More Song.mp3
+</code></pre>
+
+<p>Wasn't that fun? Doesn't it make you super excited to learn more about regular expressions?</p>
+
+<h2>The Basics</h2>
+
+<h3>Literal Text Matching</h3>
+
+<pre><code>presentation.py: e1()
+
+    1.1
+    reg.match('test', 'test and tester and testing and Test')
+
+    1.2
+    reg.match('do', 'do and sudo and doofus and Doh!')
+</code></pre>
+
+<p>Literal text matching works exactly as you might expect.</p>
+
+<p><code>test</code> will match "test" "tester" and "retesting".  However, by default it won't match "Test" unless you set the case-insensitivity flag.  How you set this flag varies from language to language.</p>
+
+<pre><code>presentation.py: e2()
+
+    2.1
+    reg.match('(?i)test', 'test and tester and testing and Test')
+
+    2.2
+    reg.match('(?i)do', 'do and sudo and doofus and Doh!')
+</code></pre>
+
+<p>In some languages, it is required that you wrap your regular expressions in delimiters.  For example, in JavaScript, you can create a Regex literal by writing <code>var /test/;</code>.  The slashes are not part of your regular expression, they're just what you have to place at the beginning and end.  As you might expect, this means that you have to escape any slashes that appear in your regular expression with a backslash (<code>\</code>).</p>
+
+<p>Not many languages support regular expression literals.  In most languages, you have to pass your regex to a function inside a string.  Depending on your language, it may or may not be required that you wrap your regex in delimiters inside the string.  However, in those languages that have you do so, you can often choose your own delimiters.</p>
+
+<p>As an example, here is how our case-insensitive regex would look in Python, PHP, and JavaScript.</p>
+
+<p><em>presentation.py:</em> <strong>e3()</strong></p>
+
+<p>Python:</p>
+
+<pre><code>import re
+r = re.compile(pattern='test', flags=re.IGNORECASE)
+</code></pre>
+
+<p>PHP:</p>
+
+<pre><code>// These two lines do the exact same thing.
+// Yes, you can choose your delimiters.
+$matched = preg_match('/test/i', 'TeStInG');
+$matched = preg_match('@test@i', 'TeStInG');
+</code></pre>
+
+<p>JavaScript:</p>
+
+<pre><code>var regex = /test/i;
+</code></pre>
+
+<p><em>presentation.py:</em> <strong>e4()</strong></p>
+
+<p>There are other characters that must be escaped with a backslash if you want to literally match them. They are <code>$</code>, <code>(</code>, <code>)</code>, <code>*</code>, <code>+</code>, <code>.</code>, <code>?</code>, <code>[</code>, <code>\</code>, <code>^</code>, <code>{</code>, and <code>|</code>.  Remember that your language might require you to double escape your backslashes, which can make things even harder to read.</p>
+
+<p>The value of being able to pick your own delimiters is that you can choose a character that doesn't appear in the string, so you won't have to escape it.  For example, when matching URLs in PHP, I'll often use <code>@</code>, or for matching an email address <code>#</code>.  Which delimiters you can use vary, so check your docs for details.</p>
+
+<h3>Matching the beginning or end of the string</h3>
+
+<pre><code>presentation.py: e5()
+
+    5.1
+    reg.match('^mars$', 'mars')
+
+    5.2
+    reg.match('^mars$', 'marsupial')
+
+    5.3
+    reg.match('^mars', 'marsha, marsha, marsha!')
+</code></pre>
+
+<p>What happens if you don't want to match a string like "testing", "retest" but just a string that only contains "test"?  To accomplish this, you can use <code>^</code> to match the beginning and <code>$</code> to match the end of the string. So, our pattern would become <code>^test$</code>.  Of course, you don't have to use these together. You can just write <code>^test</code> to match strings like <code>testing</code>.</p>
+
+<p>You should also be aware that in some environments, <code>^</code> and <code>$</code> might not just mean match at the beginning and end of a string, but also at the beginning or end of a line.  Most regular expression engines require you to turn this feature on, but in Ruby and many text editors, it's on by default, and you can't turn it off.  If you want to turn this feature on, it's often called multiline mode.  In Ruby or most text editors, you can use <code>\A</code> and <code>\Z</code> instead of <code>^</code> and <code>$</code> to match just the beginning and end of a string.</p>
+
+<pre><code>presentation.py: e6()
+
+    reg.match('\Amartian\Z', 'martian')
+</code></pre>
+
+<p>Finally, it's important to note that <code>^</code> and <code>$</code> are non-consuming anchors. We'll learn more about this in a bit, but basically this just means that they don't actually match any characters, they just match a position.</p>
+
+<h3>Regex Basics: ? * +</h3>
+
+<pre><code>presentation.py: e7()
+
+    7.1
+    reg.match('^no$', 'no')
+
+    7.2
+    reg.match('^no?$', 'n')
+
+    7.3
+    reg.match('^no?$', 'no')
+</code></pre>
+
+<p>Let's say you want to match some user input. You want to find out if the user entered "no".  <code>^no$</code> should do that nicely.  But what if you also wanted to allow the user to just enter  "n", with no <code>o</code>?  For that, you can use the <code>?</code> modifier.  The <code>?</code> means match the previous item zero or one times.  So, if our pattern becomes <code>^no?$</code>, it can match "n" or "no".  In other words, this means match n at the beginning of the string, then match an o if there's one there, otherwise, don't.</p>
+
+<pre><code>presentation.py: e8()
+
+    8.1
+    reg.match('^no*', 'nooooooooooooo')
+
+    8.2
+    reg.match('^no*', 'n')
+</code></pre>
+
+<p>What if we wanted to accept "n", "no", or even "noooooooooo"?  For this, we can use the <code>*</code> modifier.  <code>*</code> means match the preceding item zero or more times.  <code>^no*$</code> should do what we want in this case.</p>
+
+<pre><code>presentation.py: e8b()
+
+    reg.match('a+', '123')
+
+    not a match
+</code></pre>
+
+<p>Be careful with expressions that become "too optional." If you try to match <code>a+</code> against "123", you won't get a match. But what if we try to match <code>a*</code> against the same string?</p>
+
+<pre><code>presentation.py: e8c()
+
+    reg.match('a*', '123')
+</code></pre>
+
+<p>We have a match! But it's invisible. Running "vmatch" shows us several matches:</p>
+
+<pre><code>presentation.py: e8d()
+
+    reg.vmatch('a*', '123')
+
+    1) start: 0, end: 0, match: 
+    2) start: 1, end: 1, match: 
+    3) start: 2, end: 2, match: 
+    4) start: 3, end: 3, match: 
+
+    123
+</code></pre>
+
+<p>These are zero-width matches. <code>a*</code> means zero or more stars, and when the engine can't find any matches on a, it will happily accept zero length strings. It might be clearer if we make some replacements:</p>
+
+<pre><code>presentation.py: e8e()
+
+    reg.replace('a*', '123', '__')
+
+    __1__2__3__
+</code></pre>
+
+<p>See? The engine found four places where zero characters matches.</p>
+
+<pre><code>presentation.py: e9()
+
+    9.1
+    reg.match('^no+', 'nooo')
+
+    9.2
+    reg.match('^no+', 'n')
+</code></pre>
+
+<p>What if we don't want to match "n" alone, but instead, we want to match "n" followed by one or more "o"s?  For that the <code>+</code> will do what we need.  <code>+</code> means match the preceding item one or more times. <code>^no+$</code> does the trick.</p>
+
+<pre><code>presentation.py: e10()
+
+    10.1
+    reg.match('^no{10}', 'noooooooooo')
+
+    10.2
+    reg.match('^no{1000}', 'noooooooooooooooo')
+</code></pre>
+
+<p>Finally, since we've long since passed the boundary of contrivance, let's say we want to match "noooooooooo", with exactly ten "o"s.  We could of course do <code>^noooooooooo$</code>, but this solution quickly becomes impractical as the number of desired o's increases.  To match the previous item exactly N times, we use braces, <code>{N}</code>, where n is an integer >= 0.  So, the better solution to matching "noooooooooo" with exactly 10 "o"s is <code>^no{10}$</code>.</p>
+
+<pre><code>presentation.py: e11()
+
+    11.1
+    reg.match('^kahn{3,10}', 'kahn')
+
+    11.2
+    reg.match('^kahn{3,}', 'kahnnnnnnnnnnnnnnnnnnnnnnnn')
+</code></pre>
+
+<p>This modifier has a bit more flexibility than that, however.  If you want to match "no" having between three and ten o's, you can write <code>^no{3,10}$</code>.  If you want to match three to infinity o's, you can simply do <code>^no{3,}$</code>.</p>
+
+<h3>Alternation</h3>
+
+<pre><code>presentation.py: e12()
+
+    12.1
+    reg.match('^no|yes$', 'yes')
+
+    12.2
+    reg.match('^no|yes$', 'no')
+
+    12.3
+    reg.match('^no|yes$', 'maybe')
+</code></pre>
+
+<p>What if you wanted to match either "no" or "yes"?  You can do so by simply writing <code>^no|yes$</code>.  The <code>|</code> basically means "or".  If the first option doesn't match, it tries the second, and so on.</p>
+
+<p>Keep in mind that regular expressions are evaluated from left to right, so the first match is tried first, then the second, and so on.  Once a match is found, no more matches are attempted.</p>
+
+<pre><code>presentation.py: e13()
+
+    13.1
+    reg.match('jo|jon|joe', "say it ain't so, joe")
+
+    13.2
+    reg.match('joe|jon|jo', "say it ain't so, joe")
+
+    13.3
+    reg.match('joe|jon|jo', "say it ain't so, hwil hwheaton")
+</code></pre>
+
+<p>So, what if you want to match a string that contains either "jon", "joe", or "jo"?  The regular expression <code>jo|jon|joe</code> would match, but not necessarily always what you want.  Since the first alternative to match is always used, this would cause this pattern to always match "jo", even for "jon" or "joe".  The proper way to write this would be <code>joe|jon|jo</code></p>
+
+<p>Something else to keep in mind is that, for efficiency,  if you know that a particular alternative will occur far more frequently than another, you might want to list the more frequent alternative first.</p>
+
+<h3>Matching Any Character</h3>
+
+<p>Let's say we wanted to match a string that only contained a particular phone number, 952-555-1212. It may or may not have dash delimiters, or it might be written with underscores or periods instead of dashes.  One not very good way to solve this problem would be to use the following regex:</p>
+
+<pre><code>^952.555.1212$
+
+presentation.py: e14()
+
+    14.1
+    reg.match('^952.555.1212$', '952-555_1212')
+
+    14.2
+    reg.match(
+        '^952.555.1212$',
+        '952-
+        555-1212'
+    )
+</code></pre>
+
+<p>The <code>.</code> character matches any character, with one caveat.  It does not match newline characters, unless you turn on the "single line" mode in your regular expression engine.  (Java calls this the "dot all" mode.)</p>
+
+<pre><code>presentation.py: e15()
+
+    reg.match(
+        '(?s)^952.555.1212$',
+        '952
+        555-1212'
+    )
+</code></pre>
+
+<p>If setting this mode is not possible (for example, if you're using JavaScript), one hack to accomplish the same thing is to write something like <code>[\s\S]</code>.  We'll discuss what this pattern actually says in the next section.</p>
+
+<pre><code>presentation.py: e16()
+
+    reg.match(
+        '^wascally[\s\S]wabbit$',
+        'wascally
+        wabbit'
+    )
+</code></pre>
+
+<p>However, for our purposes, we don't want the <code>.</code> to match newlines.  In fact, it will match a lot of characters that we don't want it to.  This is why I only use <code>.</code> when nothing else will do.  Usually, something else does.</p>
+
+<h3>Character Classes</h3>
+
+<p>So, as you undoubtedly noticed, our phone number example isn't very good.  first, it only matches one particular phone number, and second, it would match "952Q55561212", and several other invalid strings.  Fortunately character classes give us the chance to fix these issues.</p>
+
+<pre><code>presentation.py: e17()
+
+    reg.match('^\d\d\d.\d\d\d.\d\d\d\d$', '763-555-1234')
+</code></pre>
+
+<p>First, let's make our pattern match any digits, not just the ones we specified.  To do this, we can use the following regular expression:</p>
+
+<pre><code>^\d\d\d.\d\d\d.\d\d\d\d$
+</code></pre>
+
+<p>As you may have guessed, <code>\d</code> matches one digit character, 0 through 9.</p>
+
+<pre><code>presentation.py: e18()
+</code></pre>
+
+<p>Other character class shortcuts that are available are <code>\s</code> to match any whitespace character, and <code>\w</code> to match any word character.  (A word character is defined as any digit, any letter, and the underscore.  See the docs for your particular regex engine for the definition of a letter, as some match any letter from the whole of Unicode, and others only consider the latin alphabet defined in ASCII.)</p>
+
+<pre><code>    e18()
+    class   matches
+    -----   ------------------------------------------
+    \d      digit: 0-9
+    \s      whitespace character
+    \w      word character (digit, letter, underscore)
+    \D      non-digit
+    \W      non-word character
+    \S      non-whitespace character
+</code></pre>
+
+<p>Capitalized versions of these shortcuts are also available, and they match the exact opposite of their lower-case counterparts.  <code>\D</code> matches any non-digit character, <code>\W</code> matches any non-word character, and <code>\S</code> matches any non-whitespace character.</p>
+
+<pre><code>presentation.py: e19()
+
+    19.1
+    reg.match('^\d\d\d\W\d\d\d\W\d\d\d\d$', '763-555-1234')
+
+    19.2
+    reg.match('^\d\d\d\W\d\d\d\W\d\d\d\d$', '763A555B1234')
+
+    19.3
+    reg.match('^\d\d\d\W\d\d\d\W\d\d\d\d$', '763_555_1234')
+</code></pre>
+
+<p>So, with this knowledge, we can improve our regular expression a bit:</p>
+
+<pre><code>^\d\d\d\W\d\d\d\W\d\d\d\d$
+</code></pre>
+
+<p>This is still not perfect.  First, we're assuming that this is a US phone number, and US phone numbers can't have their area codes or prefixes start with a 1 or a 0.  Second, while we did make sure that we don't match any letters or  digits between the parts of the phone number, there are still a lot of characters that we don't want to be used.  We also prevented the underscore from being used, which seems like a reasonable character to allow.</p>
+
+<pre><code>presentation.py: e20()
+
+    20.1
+    reg.match('^\d\d\d[-._ ]\d\d\d[-._ ]\d\d\d\d$', '763_867_5309')
+
+    20.2
+    reg.match('^\d\d\d[-._ ]\d\d\d[-._ ]\d\d\d\d$', '763X867Y5309')
+</code></pre>
+
+<p>What we need is a custom character class, where we can specify a list of characters that are permissible.  This is how we do that:</p>
+
+<pre><code>^\d\d\d[-._ ]\d\d\d[-._ ]\d\d\d\d$
+</code></pre>
+
+<p>Custom character classes are delimited by square brackets, and have their own set of metacharacters which we'll discuss more in a moment.</p>
+
+<p>Now we will only match phone numbers that have their parts delimited by either a space, "-", "_" or a ".".  We now just need to solve the issue with the first digits of the prefix and area code not being 1.</p>
+
+<pre><code>presentation.py: e21()
+
+    21.1
+    reg.match('^[23456789]\d\d[-._][23456789]\d\d[-._]\d\d\d\d$', '763-867-5309')
+
+    21.2
+    reg.match('^[2-9]\d\d[-._][2-9]\d\d[-._]\d\d\d\d$', '952-867-5309')
+
+    21.3
+    reg.match('^[2-9]\d\d[-._][2-9]\d\d[-._]\d\d\d\d$', '763-155-1234')
+</code></pre>
+
+<p>The obvious solution is:</p>
+
+<pre><code>^[23456789]\d\d[-._][23456789]\d\d[-._]\d\d\d\d$
+</code></pre>
+
+<p>But fortunately, there is a more concise way to write this:</p>
+
+<pre><code>^[2-9]\d\d[-._][2-9]\d\d[-._]\d\d\d\d$
+
+presentation.py: e22()
+</code></pre>
+
+<p>Writing something like <code>[a-z]</code> means match the lowercase letters a through z. The dash is a "range specifier."  You can also include multiple ranges in a single character class like <code>[a-zA-Z]</code>, which means match any letter, regardless of capitalization,.  The ordering is based on the character code values.</p>
+
+<pre><code>e22()
+range           contains
+--------        ---------------------------------
+[a-z]           lowercase letters "a" through "z"
+[A-Z]           uppercase letters
+[a-zA-Z]        all letters
+[a-mA-M]        letters from "a" to "m"
+[0-9]           numbers from 0 to 9
+
+presentation.py: e23()
+
+    reg.match('^[2-9]\d\d[-._ ][2-9]\d\d[-._ ]\d{4}$', '763-555-1234')
+</code></pre>
+
+<p>While we're making things more concise, let's shorten up this regular expression a bit more by using the braces we learned about earlier.</p>
+
+<pre><code>^[2-9]\d\d[-._ ][2-9]\d\d[-._ ]\d{4}$
+
+presentation.py: e24()
+
+    custom [character class] notes:
+
+    - literal dash goes first or last (or needs to be escaped)
+
+    - only "\", "]", and "^" need to be escaped inside class (and "[" for Java)
+
+    - metacharacters like "." "?" "*" and "+" are not special in a class
+
+    - the caret (^) signals negation when it appears as the first character:
+
+            [^2-9] matches any character other than 2 through 9
+                   (0, 1, letters, etc)
+</code></pre>
+
+<p>If you want to use a literal dash character inside your character class, like we did above, you have to make sure that it is placed at either the beginning or the end of the class, so it can't be confused for a range specifier.  Alternatively, you can escape it with a <code>\</code>.</p>
+
+<p>Also, only the "\", "]" and "^" characters need to be escaped if you wish them to have their literal meanings.  (If you're using Java, you'll also need to escape "[" as well.)  All of the other characters that have special meaning outside a character class, like the <code>.</code> character, have only their literal meanings inside a character class.</p>
+
+<p>Finally, just like you can take the negatives of the word, digit and whitespace character classes, you can place a <code>^</code> at the beginning of a character class to do the same.  For example, <code>[^2-9]</code> will match any character that isn't in the range 2 through 9, inclusive.</p>
+
+<h3>Word Boundaries</h3>
+
+<p>Writing <code>\b</code> in your regular expression will cause the regex engine to try to match a word boundary at that point.  Like the <code>^</code> and <code>$</code>, it does not actually match any text, just a position.</p>
+
+<pre><code>presentation.py: e25()
+
+    25.1
+    reg.match(r'\\b[nN]erd', "We're all nerds at The Nerdery")
+
+    25.2
+    reg.match(r'\\b[nN]erd', "We're all nerds at TheNerdery")
+
+    25.3
+    reg.match(r'\\B[nN]erd', "We're all nerds at TheNerdery")
+</code></pre>
+
+<p>A word boundary is a position that has a word character on one side, and either a non-word character or the beginning or the end of the string on the other.</p>
+
+<pre><code>\b[nN]erd
+</code></pre>
+
+<p>This would match the strings "nerd" or "Nerdery", but not "TheNerdery".</p>
+
+<p><code>\B</code> will match on a non-word boundary, or in other words, everywhere where <code>\b</code> won't match.</p>
+
+<h2>Grouping and Capturing</h2>
+
+<h3>Capturing Groups</h3>
+
+<pre><code>presentation.py: e26()
+
+    reg.match('(\d\d)/(\d\d)/(\d{4})', '04/22/1970')
+</code></pre>
+
+<p>Consider the case where you want to match a date, and pull out just the month, day, and year parts.  This is quite simple with capturing groups:</p>
+
+<pre><code>(\d\d)/(\d\d)/(\d{4})
+
+presentation.py: e27()
+
+    reg.vmatch('(\d\d)/(\d\d)/(\d{4})', '04/22/1970')
+
+        1) start: 0, end: 10, match: 04/22/1970
+           groups: ('04', '22', '1970')
+</code></pre>
+
+<p>Using the API for your regular expression engine, you should then be able to pull the characters matched from within the first set of parenthesis out of the first matching group, the second from the second, and the third from the third group.</p>
+
+<h3>Grouping</h3>
+
+<p>Even if you don't care to access what was matched inside a set of parentheses, groups can still be quite useful.</p>
+
+<p>Recall the earlier regular expression where we wanted to match Jo, Joe or Jon.  To keep things interesting, let's add "Jan" to that list.</p>
+
+<pre><code>presentation.py: e28()
+
+    28.1
+    reg.match('^My name is (Jan|Joe|Jon|Jo)$', 'My name is Jan')
+
+    28.2
+    reg.match('^My name is J(an|oe|on|o)$', 'My name is Joe')
+
+    28.3
+    reg.vmatch('^My name is J(an|oe|on|o)$', 'My name is Jo')
+
+        1) start: 0, end: 13, match: My name is Jo
+           groups: ('o',)
+</code></pre>
+
+<p>Now, what happens if we want to extend that to match "My name is Jan", or "My name is Joe", etc.  The not very smart way to do that would be to write it all out, using alternation between each possible match.  Fortunately, if we use alternation inside a group, it will only consider the possible matches inside that group.  This means that we can write:</p>
+
+<pre><code>^My name is (Jan|Joe|Jon|Jo)$
+</code></pre>
+
+<p>Or minimally more efficient with less readability:</p>
+
+<pre><code>^My name is J(an|oe|on|o)$
+
+presentation.py: e29()
+
+    29.1
+    reg.match('^My name is( really)? Ishmael$', 
+              'My name is really Ishmael')
+
+    29.2
+    reg.match('^My name is( really)? Earl$',
+              'My name is Earl')
+
+    29.3
+    reg.match('^My name is( really){3,} Alice$',
+              'My name is really really Alice')
+</code></pre>
+
+<p>In addition, you can apply modifiers to groups.  So, if you wanted to optionally match the word "really" after the is, you could write:</p>
+
+<pre><code>^My name is( really)? Ishmael$
+</code></pre>
+
+<p>Of course, other modifiers work as well, so you can write:</p>
+
+<pre><code>^My name is( really){3,} Alice$
+</code></pre>
+
+<p>This would of course require that "really" appear three or more times in that position in order to match the string.</p>
+
+<p>Capturing groups are numbered from left to right, based on the position of their left parenthesis.  Non-capturing groups, and other parenthesized groups, such as look-around expressions don't effect the count.</p>
+
+<pre><code>presentation.py: e30()
+
+    reg.vreplace('(\w+) (\w+) (\w+)',
+                 'order rearrange the', r'\2 \3 \1')
+
+        1) start: 0, end: 19, match: order rearrange the
+           groups: ('order', 'rearrange', 'the')
+
+        rearrange the order
+</code></pre>
+
+<p>The numbered groups can be used in regex replacements, where they are usually referred to with a backslash or dollar sign before the number, for example, in Python:</p>
+
+<pre><code>re.sub('(\w+) (\w+) (\w+)', r'\2 \3 \1', 'order rearrange the')
+</code></pre>
+
+<p>Produces the result:</p>
+
+<pre><code>rearrange the order
+
+presentation.py: e30b()
+
+    reg.vreplace('(\w+) (\w+) (\w+)',
+                 'order rearrange the this just like',
+                 r'\2 \3 \1')
+
+        1) start: 0, end: 19, match: order rearrange the
+           groups: ('order', 'rearrange', 'the')
+        2) start: 20, end: 34, match: this just like
+           groups: ('this', 'just', 'like')
+
+        rearrange the order just like this
+</code></pre>
+
+<p>These are "backreferences," which we'll cover more in a moment.</p>
+
+<h3>Non-Capturing Groups</h3>
+
+<pre><code>presentation.py: e31()
+
+    31.1
+    reg.vmatch('^My name is( really)? J(an|oe|on|o)$', 'My name is really Jan')
+
+        1) start: 0, end: 21, match: My name is really Jan
+           groups: (' really', 'an')
+
+    31.2
+    reg.vmatch('^My name is(?: really)? J(?:an|oe|on|o)$', 'My name is really Jan')
+
+        1) start: 0, end: 21, match: My name is really Jan
+</code></pre>
+
+<p>Since we likely have no interest in actually capturing the "really" from the previous examples, it seems a bit wasteful for the regular expression engine to save it just in case we want it.  Fortunately, we can tell the engine that we won't need any of the groups by placing a <code>?:</code> just after the opening parenthesis:</p>
+
+<pre><code>^My name is(?: really)? J(?:an|oe|on|o)$
+</code></pre>
+
+<p>The increased efficiency may not balance out the decrease in readability, but non-capturing groups are especially helpful when we want to deal with the results of some captures but not others.</p>
+
+<h3>Named Capturing Groups</h3>
+
+<p>Many regular expression engines (with the notable exception of JavaScript) offer the option to name your capturing groups, which has the potential to make things more readable.  Unfortunately, the syntax for doing this differs from engine to engine, so if this is something you're interested in, I recommend checking your documentation to find out if it's supported, and if so, how to use it.</p>
+
+<h3>Backreferences</h3>
+
+<p><em>presentation.py:</em> <strong>e32()</strong></p>
+
+<p>How would you match strings like the following:</p>
+
+<ul>
+<li>I feel really really happy!</li>
+<li>I feel very very very very very happy!</li>
+<li>I feel happy!</li>
+</ul>
+
+<p>In other words, you want to allow zero or more "really"s or "very"s, but you don't want to match something like "very really very very". You might start with:</p>
+
+<pre><code>^I feel( really| very)* happy!$
+
+presentation.py: e33()
+
+    33.1
+    reg.match('^I feel( really| very)* happy!$',
+              'I feel really really happy!')
+
+    33.2
+    reg.match('^I feel( really| very)* happy!$',
+              'I feel really very really very happy!')
+</code></pre>
+
+<p>This satisfies the first requirement, but not the second.  What we need is a way to match something again.  This is where backreferences come in.  To keep things simple, let's first look at how you would match this pattern if at least one "really" or "very" is required:</p>
+
+<pre><code>^I feel( really| very)\1* happy!$
+
+presentation.py: e34()
+
+    reg.match(r'^I feel( really| very)\1* happy!$', 
+               'I feel really really happy!')
+
+    reg.match(r'^I feel( really| very)\1* happy!$',
+               'I feel very very very happy!')
+
+    reg.match(r'^I feel( really| very)\1* happy!$',
+               'I feel really very really very happy!')
+</code></pre>
+
+<p>The interesting part of this pattern is obvious: <code>( really| very)\1*</code>.  This can be broken down into two parts.  The first is <code>( really| very)</code> which is a capturing group, which either captures " really" or " very".  The next part <code>\1*</code> is a backreference to the first part.  It tells the regex engine to match the what we captured in the first part, zero or more times.</p>
+
+<p>Just to be clear, let's walk through this as the regex engine would.  First the engine matches "I feel".  Next the " really" or " very" is hopefully matched.  If not, the engine declares failure.  If so, " really" or " very" is stored in the first matching group.  To keep the example simple, let's assume that " very" was matched and stored in the first group.</p>
+
+<p>The regex engine next tries to match another " very", because that is what is stored in the first capturing group.  If it can't, it simply continues trying to match the rest of the pattern, since we used the <code>*</code> modifier, which means zero or more times.  If it does match another " very", it tries yet again to match " very", until it can't match anymore, at which point it continues trying to match the rest of the string.</p>
+
+<p>Recall that in our initial specification for this problem, we said we wanted to match a series of "really"s or a series of "very"s, or nothing at all in that position.  The modification to make this happen is quite simple.</p>
+
+<pre><code>^I feel((?: really| very)?)\1* happy!$
+
+presentation.py: e35()
+
+    reg.match(r'^I feel((?: really| very)?)\\1* happy!$',
+               'I feel really really happy!')
+
+    reg.match(r'^I feel((?: really| very)?)\\1* happy!$',
+               'I feel happy!')
+</code></pre>
+
+<p>Now, after matching the "I feel" portion, it tries to match either really or very.  If it does, it still stores them in the first group, like before.  If it doesn't, the first group is empty.  Either way, like before, it then tries to match whatever is stored in the back-reference.  If the back reference is empty, it won't fail, because it simply won't match anything.</p>
+
+<p>Finally, notice that we used non-capturing parenthesis inside our capturing group, to make it unambiguous that we want to capture something, even if it's nothing.</p>
+
+<p>Even more finally:</p>
+
+<pre><code>presentation.py: e36()
+
+    reg.match('^happy$', "I'm not dead yet.")
+
+    reg.match('^happy$', "I don't want to go on the cart.")
+</code></pre>
+
+<h2>Greed and Backtracking</h2>
+
+<h3>The Non-Greedy Modifier</h3>
+
+<pre><code>presentation.py: e37()
+
+    ^.*e --&gt; "The quick brown fox jumped over the lazy dog."
+
+    match = ?
+</code></pre>
+
+<p>What would you expect the following regular expression to match when run against the string "The quick brown fox jumped over the lazy dog."</p>
+
+<pre><code>^.*e
+</code></pre>
+
+<p>Would you be surprised to learn that it will match "The quick brown fox jumped over the"?</p>
+
+<pre><code>presentation.py: e38()
+
+    reg.match('^.*e', 'The quick brown fox jumped over the lazy dog.')
+</code></pre>
+
+<p>To understand why this is, let's walk through how the regular expression engine runs the above expression.</p>
+
+<p>First, the <code>^</code> matches at the beginning of the string.  Then, the <code>.*</code> means match any character, as many times as possible.  So, the regex engine happily does this, consuming everything until the end of the string.</p>
+
+<p>But then, the engine reaches the <code>e</code>, which it obviously can't match, because it consumed the whole string.  So, the engine forces the <code>.*</code> to give up one of the characters it consumed, which would be a "." in our example.  It then tries to match this against the <code>e</code>, which it clearly can't do.  So, it repeats the process until the e matches.</p>
+
+<p>So, in short, the reason the <code>e</code> matches the last "e" in the string is because the .* is greedy, and consumes as much as it can, and only gives up characters when it has to.</p>
+
+<p>If you want to make the <code>*</code>, <code>+</code> or <code>?</code> operators lazy, simply append a <code>?</code>.  Here's what the previous regex would look like made non-greedy:</p>
+
+<pre><code>^.*?e
+
+presentation.py: e39()
+
+    reg.match('^.*?e', 'The quick brown fox jumped over the lazy dog.')
+</code></pre>
+
+<p>This will match only the first "the".</p>
+
+<p>In this case, the the <code>*</code> is lazy, so it first tries to match nothing.  However, when the engine can't match the <code>e</code>, it forces the <code>*</code> to consume one more character.  It keeps doing this, until the <code>e</code> matches, at which point it declares victory, and returns.</p>
+
+<p>Finally, note that the lazy modifier also works on ranges.</p>
+
+<h3>Preventing Backtracking</h3>
+
+<p>As you might have noticed, regular expression engines are pretty dumb.  Of course by dumb, I mean terrible at reading minds.  So, sometimes they need a little help figuring out what to do.  Consider the following intentionally terrible regular expression, taken from <em>The Regular Expression Cookbook</em>:</p>
+
+<pre><code>(x+x+)+y
+
+presentation.py: e40()
+
+    (x+x+)+y    --&gt;    xxxxxxxxx
+
+    xxxxxxxxx   first pass with first x+
+    xxxxxxxx    backtrack one place
+    xxxxxxxxx   second x+ matches
+    xxxxxxxx    backtrack one looking for y
+    xxxxxxx     y? are you there?
+    xxxxxx      I thought I saw a "y" somewhere
+    xxxxx       *still* no y?
+    xxxx        y? come home: your family misses you
+    xxx         where the hell are you, y?!
+    xx          I'm not mad, just show yourself...
+    x           don't make me turn this car around...
+    (no match)  le sigh
+</code></pre>
+
+<p>Consider what would happen if you tried to use this to match the string "xxxxxxxxx".  On the first iteration, the first <code>x+</code> would match all the "x"s in the string, leaving none for the second <code>x+</code>.  So, some backtracking would occur to give the second <code>x+</code> an "x".  Then the engine would leave the group, and try to match the <code>y</code>.  When this failed, the engine would backtrack, and force the group to give up one more x, which would kick off several more iterations of backtracking inside the capturing group, and so on back to the beginning of the string.</p>
+
+<p><em>presentation.py:</em> <strong>e41()</strong></p>
+
+<p>Let's consider another, more realistic though slightly simplified example, from the same book:</p>
+
+<pre><code>&lt;html&gt;.*?&lt;head&gt;.*?&lt;title&gt;.*?&lt;/title&gt;.*?&lt;/head&gt;.*?&lt;body&gt;.*?&lt;/body&gt;.*?&lt;/html&gt;
+</code></pre>
+
+<p>First off, it's important to note that regular expressions are not very good at parsing HTML, and should only be used in limited circumstances when doing so.</p>
+
+<p>As for this example, (which I don't recommend you use for a number of reasons) consider what happens when the <code>&lt;/html&gt;</code> tag doesn't exist in the string.  Each non-greedy modifier gets back-tracked to in turn, causing this regular expression to have a worst-case running time of N^7, where N is the length of the string.</p>
+
+<p><em>presentation.py:</em> <strong>e42()</strong></p>
+
+<p>The solution is (once again, from the same book):</p>
+
+<pre><code>&lt;html&gt;(?&gt;.*?&lt;head&gt;)(?&gt;.*?&lt;title&gt;)(?&gt;.*?&lt;/title&gt;)(?&gt;.*?&lt;/head&gt;)(?&gt;.*?&lt;body&gt;)(?&gt;.*?&lt;/body&gt;).*?&lt;/html&gt;
+</code></pre>
+
+<p>The <code>(?&gt;</code> tells the regex engine that once that particular group has matched something, it should forget about any possible backtracking in that group.</p>
+
+<p>Also, some regex flavors allow you to apply possession to modifiers.  For example, <code>x++</code> would match all the "x"s it could, and never give any back.</p>
+
+<p>Unfortunately, neither of these features are available in Perl or Python.</p>
+
+<h2>Verbose Mode</h2>
+
+<p>This varies by regex engine, but you can use "verbose mode" to comment your regular expressions and spread them out. There are special rules for handling whitespace in this mode.</p>
+
+<pre><code>presentation.py: e43()
+
+    (?x)           # verbose/comment mode
+    (.+?)          # lazy match capture
+                   #    start of filename into \1
+    (              # capture extension into \2
+        \.[^.]*$   # last dot to end
+       |           # or
+        $          # forces \1 match to end if no dot
+    )              #
+</code></pre>
+
+<h2>Recommended Reading</h2>
+
+<ul>
+<li><p><em>Mastering Regular Expressions</em>, by Jeffrey Friedl</p></li>
+<li><p><em>Regular Expressions Cookbook</em>, by Jan Goyvaerts and Steven Levithan</p></li>
+</ul>
